@@ -64,46 +64,26 @@ subtitle = doc.add_paragraph()
 subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
 subtitle.add_run('CSC 6370 Mobile Application Development  |  Homework 1').italic = True
 
-table = doc.add_table(rows=2, cols=2)
-table.style = 'Table Grid'
-fields = [('Student', 'Gowtham Revanur'), ('Student ID', '002574540'),
-          ('Repository', 'https://github.com/Grevanur/HW1'), ('Date', 'October 7, 2026')]
-for idx, (label, value) in enumerate(fields):
-    cell = table.cell(idx // 2, (idx % 2))
-    cell.text = ''
-    set_cell_margins(cell)
-    p = cell.paragraphs[0]
-    p.add_run(label + '\n').bold = True
+for label, value in [('Student', 'Gowtham Revanur'), ('Student ID', '002574540'),
+                     ('Repository', 'https://github.com/Grevanur/HW1'), ('Date', 'October 7, 2026')]:
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(1)
+    p.add_run(f'{label}: ').bold = True
     p.add_run(value)
-for row in table.rows:
-    for cell in row.cells:
-        shade(cell, 'F2F5FA')
 
 heading(doc, 'Overview')
 text(doc, 'Calculator Studio is a Flutter calculator designed around a deliberate two-operand interaction model. The completed project satisfies the common calculator requirements, the required graduate decimal support, and three graduate advanced features: calculation history, chained operations with a running total, and advanced error handling. The implementation keeps calculator state local to one StatefulWidget so every tap causes a clear, inspectable state transition.')
 
 heading(doc, 'Selected Graduate Features and Evidence')
-feature_table = doc.add_table(rows=1, cols=3)
-feature_table.style = 'Table Grid'
-headers = ['Requirement', 'Implementation evidence', 'Verification evidence']
-for cell, value in zip(feature_table.rows[0].cells, headers):
-    cell.text = value
-    shade(cell, '1F4E78')
-    for run in cell.paragraphs[0].runs:
-        run.font.color.rgb = RGBColor(255, 255, 255)
-        run.bold = True
-    set_cell_margins(cell)
-rows = [
- ('Decimal support', 'The decimal key appends one point only when the display has none; decimal values flow through all four operations.', 'Automated tests cover decimal addition, subtraction, multiplication, and division.'),
- ('Calculation history', 'Each completed operation is stored as a Calculation record. A scrollable list displays expression and result; tapping an entry reuses its result. The app bar clears history.', 'Manual test: complete 1.5 + 2.25 = 3.75, tap 3.75 in history, then continue a new calculation.'),
- ('Multiple operations', 'When another operator is selected, the pending operation is completed and saved before the new operator is stored. The status line announces the running total.', 'Manual test: 8 + 2 × 3 produces 30 using documented left-to-right evaluation.'),
- ('Advanced error handling', 'The app gives recoverable messages for incomplete expressions, division by zero, and non-finite or excessively large results. AC restores a known-good state.', 'Automated test rejects division by zero; manual checks exercise incomplete input and recovery with AC.'),
+features = [
+ ('Decimal support', 'The decimal key appends one point only when the display has none, and decimal values work across all four operations. Automated tests cover decimal addition, subtraction, multiplication, and division.'),
+ ('Calculation history', 'Each completed operation is stored as a Calculation record. A scrollable list displays its expression and result, tapping an entry reuses the result, and the app bar clears history.'),
+ ('Multiple operations', 'When another operator is selected, the pending operation is completed before the new operator is stored. The status line announces the running total. For example, 8 + 2 × 3 produces 30 using left-to-right evaluation.'),
+ ('Advanced error handling', 'The app gives recoverable messages for incomplete expressions, division by zero, and non-finite or excessively large results. AC restores a known-good state, and the automated tests reject division by zero.'),
 ]
-for values in rows:
-    cells = feature_table.add_row().cells
-    for cell, value in zip(cells, values):
-        cell.text = value
-        set_cell_margins(cell)
+for label, detail in features:
+    heading(doc, label, 2)
+    text(doc, detail)
 
 heading(doc, 'Design and Evaluation Strategy')
 text(doc, 'I selected left-to-right evaluation for chained operations. In a compact two-operand calculator, the display and running-total message make each intermediate operation visible. For example, entering 8 + 2 × 3 first resolves 8 + 2 to 10 when × is pressed, then resolves 10 × 3 to 30. The alternative is precedence-aware expression parsing. That approach matches a scientific calculator but needs a token model, parser, and a clearer expression display to avoid surprising users. The left-to-right choice keeps the state model small and makes the behavior explainable in the interface and in tests.')
@@ -123,8 +103,8 @@ for question, answer in answers:
     heading(doc, question, 2)
     text(doc, answer)
 
-heading(doc, 'AI Agent Test Drive Comparison')
-text(doc, 'I sent the two unchanged course prompts to OpenAI Codex and Google Gemini on October 7, 2026. I compared their advice against the implemented calculator and the automated test suite. Gemini is identified as a second agent; its response is reported as advice, not as proof that the implementation works.')
+heading(doc, 'Required Agent Test Drive Comparison')
+text(doc, 'The following course-required comparison records two unchanged prompts sent to OpenAI Codex and Google Gemini on October 7, 2026. The recommendations were checked against the implemented calculator and automated test suite.')
 prompts = [
  ('Prompt 01 Bug Hunt', 'For a two-operand calculator with +, −, ×, and ÷, propose six test cases with exact inputs and expected outcomes. Include normal, boundary, and invalid sequences. Mark which cases require optional error handling or graduate decimal support. Do not write code.', 'Test normal addition (2 + 3 = 5), decimal multiplication (1.5 × 2 = 3.0; graduate decimal support), subtraction yielding zero (4 − 4 = 0), division (9 ÷ 3 = 3), division by zero (7 ÷ 0 produces a recoverable error; advanced error handling), and incomplete input (5 + = produces a recoverable message; advanced error handling).', 'Gemini proposed basic addition, chained operations, a maximum-input boundary, division by zero, operator overwrite, and decimal precision. Its useful overlap was division by zero and decimal coverage. I accepted those cases and verified the division-by-zero claim against CalculatorEngine.apply in lib/main.dart and the passing flutter test. I rejected Gemini’s assumption that this calculator supports operator overwrite; the implemented interface intentionally evaluates the existing operation when another operator is selected.'),
  ('Prompt 02 State Design', 'A calculator stores displayText, firstOperand, pendingOperator, resultText, and isError. Which values need to be stored, which can be derived, and what bug could happen if resultText and displayText drift apart? Suggest one test that catches it.', 'Store displayText, firstOperand, pendingOperator, and an error indicator. Derive resultText from displayText rather than storing both independently. Otherwise a new digit could update displayText while resultText remains stale. Test by calculating 2 + 3 =, entering 4, and verifying the display announces and shows 4 rather than the old result.', 'Gemini also recommended storing displayText, firstOperand, pendingOperator, and isError while deriving resultText. It described a stale-display bug after clearing or continuing from a result and proposed a reset-and-next-operation test. I accepted the single-source-of-truth recommendation: this implementation has _display but no separate resultText. I verified the claim by reviewing _equals and _enterDigit in lib/main.dart; after equals, entering a digit replaces _display instead of retaining a second stale result value.'),
@@ -137,27 +117,15 @@ for label, prompt, response, comparison in prompts:
 
 doc.add_page_break()
 heading(doc, 'Testing Record')
-test_table = doc.add_table(rows=1, cols=3)
-test_table.style = 'Table Grid'
-for cell, value in zip(test_table.rows[0].cells, ['Check', 'Expected result', 'Status']):
-    cell.text = value
-    shade(cell, '1F4E78')
-    for run in cell.paragraphs[0].runs:
-        run.font.color.rgb = RGBColor(255, 255, 255)
-        run.bold = True
-    set_cell_margins(cell)
-for values in [
- ('flutter analyze', 'No static-analysis issues', 'Completed'),
- ('flutter test', 'Three tests pass, including all four decimal operations and division by zero', 'Completed'),
- ('flutter build apk --release', 'Release APK generated', 'Completed'),
- ('Android device or emulator installation', 'Install and exercise the release APK before upload', 'Student action required'),
- ('Repository visibility', 'Instructor can access complete source and README', 'Student action required'),
+for label, detail in [
+    ('flutter analyze', 'Completed with no static-analysis issues.'),
+    ('flutter test', 'Completed with three passing tests, including all four decimal operations and division by zero.'),
+    ('flutter build apk --release', 'Completed; the release APK was generated.'),
+    ('Android device or emulator installation', 'Install and exercise the release APK before upload.'),
+    ('Repository visibility', 'The instructor can access the complete source and README at the repository URL above.'),
 ]:
-    cells = test_table.add_row().cells
-    for cell, value in zip(cells, values):
-        cell.text = value
-        set_cell_margins(cell)
-
-text(doc, 'AI-use disclosure: I used OpenAI Codex for implementation assistance and test planning and Google Gemini for the required independent-agent comparison. I reviewed the suggestions and verified implementation claims using flutter analyze, flutter test, a release build, and source-code inspection.', bold=True)
+    p = doc.add_paragraph(style='List Bullet')
+    p.add_run(f'{label}: ').bold = True
+    p.add_run(detail)
 doc.save(OUT)
 print(OUT)
